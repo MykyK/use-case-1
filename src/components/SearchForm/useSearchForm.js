@@ -12,20 +12,27 @@ export const useCountryForm = () => {
   });
   const [countries, setCountries] = useState([]);
   const [filteredCountries, setFilteredCountries] = useState([]);
+  const [limit, setLimit] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await axios.get('https://restcountries.com/v3/all');
-        setCountries(response.data);
-        setFilteredCountries(response.data);
+        let limitedCountries = response.data;
+  
+        if (limit !== null) {
+          limitedCountries = limitedCountries.slice(0, limit);
+        }
+  
+        setCountries(limitedCountries);
+        setFilteredCountries(limitedCountries);
       } catch (error) {
         console.error('Error fetching data:', error);
       }
     };
-
+  
     fetchData();
-  }, []);
+  }, [limit]);
 
   useEffect(() => {
     setFilteredCountries(countries);
@@ -62,6 +69,7 @@ export const useCountryForm = () => {
     handleChange,
     handleSubmit,
     countries,
-    filteredCountries
+    filteredCountries,
+    setLimit
   };
 };
