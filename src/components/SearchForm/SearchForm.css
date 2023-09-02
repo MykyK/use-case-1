@@ -1,0 +1,35 @@
+.app-container {
+  text-align: center;
+  margin: 30px auto;
+  width: 50%;
+  border: 1px solid #ccc;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+  margin: 15px 0;
+}
+
+.form-group__label {
+  display: inline-block;
+  width: 100px;
+  text-align: right;
+}
+
+.form-group__input {
+  font-size: 16px;
+  padding: 10px;
+  margin: 0 20px;
+}
+
+.form-group__button {
+  padding: 10px 20px;
+  font-size: 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+}
