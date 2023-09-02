@@ -1,0 +1,231 @@
+Analysts following code: 
+1:
+import React from 'react';
+import { useCountryForm } from './useSearchForm';
+import './SearchForm.css';
+
+const SearchForm = () => {
+  const { formData, handleChange, handleSubmit, filteredCountries } = useCountryForm();
+
+  return (
+    <div className="app-container">
+      <h1>Country Information Form</h1>
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label htmlFor="countryName">Country Name: </label>
+          <input type="text" id="countryName" name="countryName" value={formData.countryName} onChange={handleChange} className="form-group__input" />
+        </div>
+        <div className="form-group">
+          <label htmlFor="sortOrder">Sort Order: </label>
+          <select id="sortOrder" name="sortOrder" value={formData.sortOrder} onChange={handleChange} className="form-group__input">
+            <option value="ascend">Ascending</option>
+            <option value="descend">Descending</option>
+          </select>
+        </div>
+        <div className="form-group">
+          <label htmlFor="population">Population (in millions): </label>
+          <input type="text" id="population" name="population" value={formData.population} onChange={handleChange} className="form-group__input" />
+        </div>
+        <button type="submit" className="form-group__button">Submit</button>
+      </form>
+
+      <div>
+        <h2>Filtered Countries:</h2>
+        <pre>{JSON.stringify(filteredCountries, null, 2)}</pre>
+      </div>
+    </div>
+  );
+};
+
+export default SearchForm;
+2:
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { filterCountriesByName, filterCountriesByPopulation, sortCountriesByName } from './helpers';
+
+export const useCountryForm = () => {
+  const [formData, setFormData] = useState({
+    countryName: '',
+    population: '',
+    sortOrder: 'ascend',
+    capital: '',
+    currency: ''
+  });
+  const [countries, setCountries] = useState([]);
+  const [filteredCountries, setFilteredCountries] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get('https://restcountries.com/v3/all');
+        setCountries(response.data);
+        setFilteredCountries(response.data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    setFilteredCountries(countries);
+  }, [countries]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+  };
+
+
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    let filtered = [...countries];
+  
+    if (formData.countryName) {
+      filtered = filterCountriesByName(formData.countryName, filtered);
+    }
+    if (formData.population) {
+      filtered = filterCountriesByPopulation(formData.population, filtered);
+    }
+
+    filtered = sortCountriesByName(formData.sortOrder, filtered);
+  
+    setFilteredCountries(filtered);
+  };
+
+  return {
+    formData,
+    handleChange,
+    handleSubmit,
+    countries,
+    filteredCountries
+  };
+};
+3:
+export const filterCountriesByName = (name, countries) => {
+  const searchString = name.toLowerCase();
+  const filtered = countries
+    .filter(country => {
+      const commonName = country.name?.common?.toLowerCase() || '';
+      return commonName.includes(searchString);
+    })
+    .map(country => {
+      const commonName = country.name?.common?.toLowerCase() || '';
+      return {
+        ...country,
+        matchIndex: commonName.indexOf(searchString),
+      };
+    })
+    .sort((a, b) => a.matchIndex - b.matchIndex);
+
+  return filtered.map(country => {
+    const { matchIndex, ...rest } = country;
+    return rest;
+  });
+};
+
+export const filterCountriesByPopulation = (limit, countries) => {
+  const populationLimit = parseInt(limit, 10) * 1000000;
+  return countries.filter(country => country.population < populationLimit);
+};
+
+export const sortCountriesByName = (order, countries) => {
+  return countries.sort((a, b) => {
+    const nameA = a.name?.common || "";
+    const nameB = b.name?.common || "";
+
+    if (order === "ascend") {
+      return nameA.localeCompare(nameB);
+    } else if (order === "descend") {
+      return nameB.localeCompare(nameA);
+    } else {
+      return 0;
+    }
+  });
+};
+
+
+and help me with nex:
+
+1) Create a function that accepts numbers as an attribute and can limit the number of records. 
+2) The functionality should accept a number and retrieve the first n records (e.g., providing number `15` I should receive 15 first records from API).
+
+ChatGPT
+You want to extend the existing functionality to allow for limiting the number of records returned. There are two main parts to this:
+
+The back-end part where you fetch the data and optionally limit the number of records.
+The front-end part where you allow the user to input the limit and then use this value when fetching data.
+Here's how you can go about doing this:
+
+Step 1: Extend the Fetch Function to Accept Limit
+Modify your useEffect in useCountryForm to accept a limit parameter.
+
+javascript
+Copy code
+// Add a new state variable to track the limit.
+const [limit, setLimit] = useState(null);
+
+// Update the useEffect function to use the limit
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const response = await axios.get('https://restcountries.com/v3/all');
+      let limitedCountries = response.data;
+
+      if (limit !== null) {
+        limitedCountries = limitedCountries.slice(0, limit);
+      }
+
+      setCountries(limitedCountries);
+      setFilteredCountries(limitedCountries);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  };
+
+  fetchData();
+}, [limit]); // Add limit as a dependency, so that useEffect is re-run whenever limit changes.
+Step 2: Add an Input Field for the Limit
+Extend your SearchForm to allow for the limit input.
+
+jsx
+Copy code
+const SearchForm = () => {
+  const { formData, handleChange, handleSubmit, filteredCountries, setLimit } = useCountryForm();
+
+  // Function to handle limit change
+  const handleLimitChange = (e) => {
+    const value = parseInt(e.target.value, 10);
+    setLimit(isNaN(value) ? null : value);
+  };
+
+  return (
+    // ...existing code
+    <div className="form-group">
+      <label htmlFor="limit">Limit Records: </label>
+      <input type="number" id="limit" name="limit" onChange={handleLimitChange} className="form-group__input" />
+    </div>
+    // ...existing code
+  );
+};
+Don't forget to include setLimit in the useCountryForm return value.
+
+javascript
+Copy code
+// In useCountryForm
+return {
+  formData,
+  handleChange,
+  handleSubmit,
+  countries,
+  filteredCountries,
+  setLimit // <- Add this line
+};
+With these changes, you should have extended your existing code to limit the number of records based on the user's input.
+
+Remember, this approach will only fetch the data once and then limit the records based on what is fetched. If the API itself supports limiting the number of records, then it would be more efficient to do so directly in the API request.

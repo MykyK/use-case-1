@@ -1,0 +1,609 @@
+Analysts following code: 
+1:
+import React from 'react';
+import { useCountryForm } from './useSearchForm';
+import './SearchForm.css';
+
+const SearchForm = () => {
+  const { formData, handleChange, handleSubmit, filteredCountries } = useCountryForm();
+
+  return (
+    <div className="app-container">
+      <h1>Country Information Form</h1>
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label htmlFor="countryName">Country Name: </label>
+          <input type="text" id="countryName" name="countryName" value={formData.countryName} onChange={handleChange} className="form-group__input" />
+        </div>
+        <div className="form-group">
+          <label htmlFor="sortOrder">Sort Order: </label>
+          <select id="sortOrder" name="sortOrder" value={formData.sortOrder} onChange={handleChange} className="form-group__input">
+            <option value="ascend">Ascending</option>
+            <option value="descend">Descending</option>
+          </select>
+        </div>
+        <div className="form-group">
+          <label htmlFor="population">Population (in millions): </label>
+          <input type="text" id="population" name="population" value={formData.population} onChange={handleChange} className="form-group__input" />
+        </div>
+        <button type="submit" className="form-group__button">Submit</button>
+      </form>
+
+      <div>
+        <h2>Filtered Countries:</h2>
+        <pre>{JSON.stringify(filteredCountries, null, 2)}</pre>
+      </div>
+    </div>
+  );
+};
+
+export default SearchForm;
+2:
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { filterCountriesByName, filterCountriesByPopulation, sortCountriesByName } from './helpers';
+
+export const useCountryForm = () => {
+  const [formData, setFormData] = useState({
+    countryName: '',
+    population: '',
+    sortOrder: 'ascend',
+    capital: '',
+    currency: ''
+  });
+  const [countries, setCountries] = useState([]);
+  const [filteredCountries, setFilteredCountries] = useState([]);
+  const [limit, setLimit] = useState(null);
+
+ useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get('https://restcountries.com/v3/all');
+        let limitedCountries = response.data;
+  
+        if (limit !== null) {
+          limitedCountries = limitedCountries.slice(0, limit);
+        }
+  
+        setCountries(limitedCountries);
+        setFilteredCountries(limitedCountries);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+  
+    fetchData();
+  }, [limit]);
+
+  useEffect(() => {
+    setFilteredCountries(countries);
+  }, [countries]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+  };
+
+
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    let filtered = [...countries];
+  
+    if (formData.countryName) {
+      filtered = filterCountriesByName(formData.countryName, filtered);
+    }
+    if (formData.population) {
+      filtered = filterCountriesByPopulation(formData.population, filtered);
+    }
+
+    filtered = sortCountriesByName(formData.sortOrder, filtered);
+  
+    setFilteredCountries(filtered);
+  };
+
+  return {
+    formData,
+    handleChange,
+    handleSubmit,
+    countries,
+    filteredCountries,
+setLimit
+  };
+};
+3:
+export const filterCountriesByName = (name, countries) => {
+  const searchString = name.toLowerCase();
+  const filtered = countries
+    .filter(country => {
+      const commonName = country.name?.common?.toLowerCase() || '';
+      return commonName.includes(searchString);
+    })
+    .map(country => {
+      const commonName = country.name?.common?.toLowerCase() || '';
+      return {
+        ...country,
+        matchIndex: commonName.indexOf(searchString),
+      };
+    })
+    .sort((a, b) => a.matchIndex - b.matchIndex);
+
+  return filtered.map(country => {
+    const { matchIndex, ...rest } = country;
+    return rest;
+  });
+};
+
+export const filterCountriesByPopulation = (limit, countries) => {
+  const populationLimit = parseInt(limit, 10) * 1000000;
+  return countries.filter(country => country.population < populationLimit);
+};
+
+export const sortCountriesByName = (order, countries) => {
+  return countries.sort((a, b) => {
+    const nameA = a.name?.common || "";
+    const nameB = b.name?.common || "";
+
+    if (order === "ascend") {
+      return nameA.localeCompare(nameB);
+    } else if (order === "descend") {
+      return nameB.localeCompare(nameA);
+    } else {
+      return 0;
+    }
+  });
+};
+
+
+and create a table component and styles file for it to display that data with pagination 
+
+should show only county name, population, capital and region as table headers 
+
+ChatGPT
+To create a table component that displays filtered country data with pagination, we need to consider several steps:
+
+Create the table component (CountryTable.js) that accepts the filteredCountries array as a prop.
+Display country information in the table.
+Implement pagination.
+Firstly, let's create the table component and the styles file for it. I'll name the component CountryTable.js and the styles file CountryTable.css.
+
+CountryTable.js
+jsx
+Copy code
+import React from 'react';
+import './CountryTable.css';
+
+const CountryTable = ({ filteredCountries, itemsPerPage }) => {
+  const [currentPage, setCurrentPage] = React.useState(1);
+
+  const totalPages = Math.ceil(filteredCountries.length / itemsPerPage);
+  
+  const handleClick = (newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  const sliceStart = (currentPage - 1) * itemsPerPage;
+  const sliceEnd = sliceStart + itemsPerPage;
+
+  return (
+    <div className="country-table-container">
+      <table className="country-table">
+        <thead>
+          <tr>
+            <th>Country Name</th>
+            <th>Population</th>
+            <th>Capital</th>
+            <th>Region</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filteredCountries.slice(sliceStart, sliceEnd).map((country, index) => (
+            <tr key={index}>
+              <td>{country.name?.common}</td>
+              <td>{country.population}</td>
+              <td>{country.capital}</td>
+              <td>{country.region}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="pagination">
+        {[...Array(totalPages)].map((_, index) => (
+          <button
+            key={index}
+            onClick={() => handleClick(index + 1)}
+            className={currentPage === index + 1 ? "active" : ""}
+          >
+            {index + 1}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default CountryTable;
+CountryTable.css
+css
+Copy code
+.country-table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.country-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.country-table th,
+.country-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.country-table th {
+  background-color: #f2f2f2;
+}
+
+.pagination {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.pagination button {
+  margin: 0 5px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.pagination .active {
+  background-color: #007bff;
+  color: white;
+}
+Now, you can import this CountryTable component into your SearchForm.js component and include it where you want to display the table:
+
+SearchForm.js (partial)
+jsx
+Copy code
+// ...existing imports
+import CountryTable from './CountryTable';
+
+// ...existing code
+
+const SearchForm = () => {
+  // ...existing code
+  const itemsPerPage = 10; // Number of items per page
+
+  return (
+    <div className="app-container">
+      {/* ...existing code */}
+      <div>
+        <h2>Filtered Countries:</h2>
+        <CountryTable filteredCountries={filteredCountries} itemsPerPage={itemsPerPage} />
+      </div>
+    </div>
+  );
+};
+
+// ...existing code
+This will allow you to display the filteredCountries in a paginated table with the headers "Country Name", "Population", "Capital", and "Region".
+
+
+
+
+User
+use pagination logic which exists in useCountryForm
+ChatGPT
+Certainly! You can extend the useCountryForm custom hook to include pagination logic and then use that in the CountryTable component. To do this, we need to add new state variables and functions in the useCountryForm hook to handle pagination.
+
+Here's how you can do it:
+
+Changes in useCountryForm.js
+jsx
+Copy code
+// ...existing imports and code
+
+export const useCountryForm = () => {
+  // ...existing state and effects
+  
+  // New state variables for pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const [totalPages, setTotalPages] = useState(0);
+
+  // Update total pages when filteredCountries changes
+  useEffect(() => {
+    setTotalPages(Math.ceil(filteredCountries.length / itemsPerPage));
+  }, [filteredCountries]);
+
+  // Function to handle pagination
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  const sliceStart = (currentPage - 1) * itemsPerPage;
+  const sliceEnd = sliceStart + itemsPerPage;
+
+  const currentCountries = filteredCountries.slice(sliceStart, sliceEnd);
+
+  // ...existing return object
+  return {
+    formData,
+    handleChange,
+    handleSubmit,
+    countries,
+    filteredCountries,
+    setLimit,
+    // New properties for pagination
+    currentPage,
+    handlePageChange,
+    totalPages,
+    currentCountries,
+    itemsPerPage
+  };
+};
+Changes in SearchForm.js
+jsx
+Copy code
+// ...existing imports
+import CountryTable from './CountryTable';
+
+const SearchForm = () => {
+  const {
+    formData,
+    handleChange,
+    handleSubmit,
+    filteredCountries,
+    currentPage,
+    handlePageChange,
+    totalPages,
+    currentCountries
+  } = useCountryForm();
+
+  // ...existing JSX
+  return (
+    <div className="app-container">
+      {/* ...existing form code */}
+      <div>
+        <h2>Filtered Countries:</h2>
+        <CountryTable 
+          filteredCountries={currentCountries} 
+          currentPage={currentPage}
+          handlePageChange={handlePageChange}
+          totalPages={totalPages}
+        />
+      </div>
+    </div>
+  );
+};
+
+// ...existing export
+Changes in CountryTable.js
+jsx
+Copy code
+import React from 'react';
+import './CountryTable.css';
+
+const CountryTable = ({ filteredCountries, currentPage, handlePageChange, totalPages }) => {
+  // ...existing code
+
+  return (
+    <div className="country-table-container">
+      {/* ...existing table code */}
+      <div className="pagination">
+        {[...Array(totalPages)].map((_, index) => (
+          <button
+            key={index}
+            onClick={() => handlePageChange(index + 1)}
+            className={currentPage === index + 1 ? "active" : ""}
+          >
+            {index + 1}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default CountryTable;
+With these changes, the CountryTable component will now use the pagination logic from useCountryForm to display and navigate through the paginated data.
+
+
+
+
+User
+show me full code of CountryTable
+ChatGPT
+Certainly! Below is the full code for the CountryTable.js component, incorporating the pagination logic that comes from useCountryForm.
+
+CountryTable.js
+jsx
+Copy code
+import React from 'react';
+import './CountryTable.css';
+
+const CountryTable = ({ filteredCountries, currentPage, handlePageChange, totalPages }) => {
+  return (
+    <div className="country-table-container">
+      <table className="country-table">
+        <thead>
+          <tr>
+            <th>Country Name</th>
+            <th>Population</th>
+            <th>Capital</th>
+            <th>Region</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filteredCountries.map((country, index) => (
+            <tr key={index}>
+              <td>{country.name?.common}</td>
+              <td>{country.population}</td>
+              <td>{country.capital}</td>
+              <td>{country.region}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="pagination">
+        {[...Array(totalPages)].map((_, index) => (
+          <button
+            key={index}
+            onClick={() => handlePageChange(index + 1)}
+            className={currentPage === index + 1 ? "active" : ""}
+          >
+            {index + 1}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default CountryTable;
+In this version of CountryTable, the component accepts filteredCountries, currentPage, handlePageChange, and totalPages as props. These are all provided by the useCountryForm hook and passed down by the parent SearchForm component.
+
+The table itself remains largely the same, displaying the filteredCountries that it receives as a prop. However, the pagination controls at the bottom now use the handlePageChange function to update the current page, and they also highlight the current page using a className of "active".
+
+
+
+
+User
+Optimise the pagination elements to adjust it on table with one line 
+do it like with errow and box with page nubers like this 1/25
+ChatGPT
+Certainly, you can streamline the pagination controls to occupy just one line and display the current page number along with the total pages. You can use arrow buttons for navigating to the previous and next pages.
+
+Here's how you can update the CountryTable.js component to achieve that:
+
+CountryTable.js
+jsx
+Copy code
+import React from 'react';
+import './CountryTable.css';
+
+const CountryTable = ({ filteredCountries, currentPage, handlePageChange, totalPages }) => {
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      handlePageChange(currentPage - 1);
+    }
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      handlePageChange(currentPage + 1);
+    }
+  };
+
+  return (
+    <div className="country-table-container">
+      <table className="country-table">
+        <thead>
+          <tr>
+            <th>Country Name</th>
+            <th>Population</th>
+            <th>Capital</th>
+            <th>Region</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filteredCountries.map((country, index) => (
+            <tr key={index}>
+              <td>{country.name?.common}</td>
+              <td>{country.population}</td>
+              <td>{country.capital}</td>
+              <td>{country.region}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="pagination">
+        <button onClick={goToPreviousPage} disabled={currentPage <= 1}>←</button>
+        <span>{`${currentPage}/${totalPages}`}</span>
+        <button onClick={goToNextPage} disabled={currentPage >= totalPages}>→</button>
+      </div>
+    </div>
+  );
+};
+
+export default CountryTable;
+CountryTable.css
+You can also update the CSS to make sure it fits in one line.
+
+css
+Copy code
+/* ...existing styles */
+
+.pagination {
+  margin-top: 20px;
+  text-align: center;
+  display: inline-block;
+}
+
+.pagination button, .pagination span {
+  margin: 0 5px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+In this modified version of CountryTable, I have added two new functions goToPreviousPage and goToNextPage to handle the navigation. Arrow buttons (← and →) are used to navigate to the previous and next pages, respectively. The current page and total pages are displayed as currentPage/totalPages in a span element between the buttons.
+
+
+
+
+User
+align horizontally  all inputs in form 
+ChatGPT
+If you'd like to align all the input fields horizontally in your form, you can update the CSS for your form groups. This will largely depend on how your existing CSS is structured, but based on your initial code, here's how you can update the SearchForm.css file:
+
+SearchForm.css
+css
+Copy code
+.app-container {
+  /* ...existing styles */
+}
+
+.form-group {
+  display: inline-block;  /* Changed from block to inline-block */
+  margin-right: 20px;     /* Added margin to the right */
+}
+
+.form-group__input {
+  /* ...existing styles */
+}
+
+.form-group__button {
+  /* ...existing styles */
+  vertical-align: top;  /* Added vertical alignment to align with the form inputs */
+}
+Now, each .form-group is an inline-block element and will appear next to each other horizontally. Additionally, I've added a margin-right for spacing between each group. The submit button has been vertically aligned with the form inputs using vertical-align: top.
+
+SearchForm.js
+In your SearchForm.js, you might also want to adjust the button placement, like so:
+
+jsx
+Copy code
+{/* ...existing code */}
+      <form onSubmit={handleSubmit} className="form-horizontal">
+        <div className="form-group">
+          {/* ...existing inputs */}
+        </div>
+        <div className="form-group">
+          {/* ...existing inputs */}
+        </div>
+        <div className="form-group">
+          {/* ...existing inputs */}
+        </div>
+        <button type="submit" className="form-group__button">Submit</button>
+      </form>
+{/* ...existing code */}
+By making these adjustments, all the inputs along with the submit button should align horizontally. Adjust the CSS further as needed based on your specific requirements.

@@ -1,0 +1,880 @@
+
+analize that code: 
+1: 
+import React from 'react';
+import { useCountryForm } from './helpers'; // Make sure the path is correct
+import './SearchForm.css'; // Import the CSS file
+
+const SearchForm = () => {
+  const { formData, handleChange, handleSubmit, countries } = useCountryForm();
+
+  return (
+    <div className="app-container">
+      <h1>Country Information Form</h1>
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label htmlFor="countryName" className="form-group__label">Country Name: </label>
+          <input
+            type="text"
+            id="countryName"
+            name="countryName"
+            value={formData.countryName}
+            onChange={handleChange}
+            className="form-group__input"
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="population" className="form-group__label">Population: </label>
+          <input
+            type="text"
+            id="population"
+            name="population"
+            value={formData.population}
+            onChange={handleChange}
+            className="form-group__input"
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="capital" className="form-group__label">Capital: </label>
+          <input
+            type="text"
+            id="capital"
+            name="capital"
+            value={formData.capital}
+            onChange={handleChange}
+            className="form-group__input"
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="currency" className="form-group__label">Currency: </label>
+          <input
+            type="text"
+            id="currency"
+            name="currency"
+            value={formData.currency}
+            onChange={handleChange}
+            className="form-group__input"
+          />
+        </div>
+        <button type="submit" className="form-group__button">Submit</button>
+      </form>
+      {/* Display the fetched countries data */}
+      <div>
+        <h2>Fetched Countries:</h2>
+        <pre>{JSON.stringify(countries, null, 2)}</pre>
+      </div>
+    </div>
+  );
+};
+
+export default SearchForm;
+2: 
+import { useState } from 'react';
+import axios from 'axios';
+
+export const useCountryForm = () => {
+  const [formData, setFormData] = useState({
+    countryName: '',
+    population: '',
+    capital: '',
+    currency: ''
+  });
+
+  // New state to store the countries data
+  const [countries, setCountries] = useState([]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+  };
+
+  const fetchData = async (filterKey, filterValue) => {
+    try {
+      let url;
+      if (filterKey && filterValue) {
+        url = `https://restcountries.com/v3/name/${filterValue}`;
+      } else {
+        url = `https://restcountries.com/v3/all`;
+      }
+
+      const response = await axios.get(url);
+
+      // Update the countries state with the retrieved data
+      setCountries(response.data);
+
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const filledFields = Object.keys(formData).filter((key) => formData[key]);
+
+    if (filledFields.length > 0) {
+      const firstFilledField = filledFields[0];
+      fetchData(firstFilledField, formData[firstFilledField]);
+    } else {
+      fetchData();
+    }
+  };
+
+  return {
+    formData,
+    handleChange,
+    handleSubmit,
+    countries // Returning the countries data
+  };
+};
+
+
+help me with following: 
+1) Create a function that accepts a string as a parameter and can filter by country `name/common`. 
+2) The filter should search for countries names that contains string from attributes (e.g. providing `st` as attribute I could find `Estonia`, providing `Sp` I could find `Spain`)
+3) Search should be case insensitive (e.g., providing `sT` should find `Estonia`)
+
+ChatGPT
+Sure, let's start by updating the useCountryForm hook to add a function that filters countries based on a string passed as an argument. This function will filter by the name.common attribute of the country objects, perform a case-insensitive search, and match partial strings. Here's how you can do it:
+
+Updated useCountryForm Hook
+javascript
+Copy code
+// ...existing imports and code
+
+export const useCountryForm = () => {
+  // ...existing state and functions
+
+  const filterCountriesByName = (searchStr) => {
+    // Make the search case-insensitive
+    const lowerCaseSearchStr = searchStr.toLowerCase();
+    
+    // Filter countries whose name contains the search string
+    const filteredCountries = countries.filter(country => {
+      const countryName = country.name.common.toLowerCase();
+      return countryName.includes(lowerCaseSearchStr);
+    });
+
+    return filteredCountries;
+  };
+
+  // ...existing handleSubmit function and return statement
+
+  return {
+    // ...existing returned values
+    filterCountriesByName,  // Adding the new function to the returned object
+  };
+};
+This new filterCountriesByName function takes a search string, converts it to lowercase for case-insensitive searching, and filters the countries based on the name.common attribute. The function then returns the filtered list.
+
+Using the new function in the component
+Now, you can use this new function in your SearchForm component to display filtered countries. Here's an example of how you could add a button to trigger this filter.
+
+javascript
+Copy code
+// ...existing imports and code
+
+const SearchForm = () => {
+  const { formData, handleChange, handleSubmit, countries, filterCountriesByName } = useCountryForm();
+
+  // New state for filtered countries
+  const [filteredCountries, setFilteredCountries] = React.useState([]);
+
+  const handleFilter = () => {
+    const result = filterCountriesByName(formData.countryName);
+    setFilteredCountries(result);
+  };
+
+  return (
+    <div className="app-container">
+      {/* ...existing form fields */}
+      <button type="button" onClick={handleFilter} className="form-group__button">Filter</button>
+
+      {/* Display the filtered countries data */}
+      <div>
+        <h2>Filtered Countries:</h2>
+        <pre>{JSON.stringify(filteredCountries, null, 2)}</pre>
+      </div>
+
+      {/* ...existing code to display fetched countries */}
+    </div>
+  );
+};
+Here, I've added a new state variable filteredCountries that will hold the countries that match the filter. I've also added a handleFilter function that calls filterCountriesByName when a new button is clicked. Finally, I display filteredCountries below the form.
+
+This should help you implement the features you've described. Let me know if you have any more questions!
+
+
+
+
+User
+provide me full code without comments 
+ChatGPT
+Certainly, here's the full code without comments:
+
+useCountryForm.js
+javascript
+Copy code
+import { useState } from 'react';
+import axios from 'axios';
+
+export const useCountryForm = () => {
+  const [formData, setFormData] = useState({
+    countryName: '',
+    population: '',
+    capital: '',
+    currency: ''
+  });
+  const [countries, setCountries] = useState([]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+  };
+
+  const fetchData = async (filterKey, filterValue) => {
+    try {
+      let url;
+      if (filterKey && filterValue) {
+        url = `https://restcountries.com/v3/name/${filterValue}`;
+      } else {
+        url = `https://restcountries.com/v3/all`;
+      }
+      const response = await axios.get(url);
+      setCountries(response.data);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const filledFields = Object.keys(formData).filter((key) => formData[key]);
+    if (filledFields.length > 0) {
+      const firstFilledField = filledFields[0];
+      fetchData(firstFilledField, formData[firstFilledField]);
+    } else {
+      fetchData();
+    }
+  };
+
+  const filterCountriesByName = (searchStr) => {
+    const lowerCaseSearchStr = searchStr.toLowerCase();
+    const filteredCountries = countries.filter(country => {
+      const countryName = country.name.common.toLowerCase();
+      return countryName.includes(lowerCaseSearchStr);
+    });
+    return filteredCountries;
+  };
+
+  return {
+    formData,
+    handleChange,
+    handleSubmit,
+    countries,
+    filterCountriesByName
+  };
+};
+SearchForm.js
+javascript
+Copy code
+import React from 'react';
+import { useCountryForm } from './helpers';
+import './SearchForm.css';
+
+const SearchForm = () => {
+  const { formData, handleChange, handleSubmit, countries, filterCountriesByName } = useCountryForm();
+  const [filteredCountries, setFilteredCountries] = React.useState([]);
+
+  const handleFilter = () => {
+    const result = filterCountriesByName(formData.countryName);
+    setFilteredCountries(result);
+  };
+
+  return (
+    <div className="app-container">
+      <h1>Country Information Form</h1>
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label htmlFor="countryName">Country Name: </label>
+          <input type="text" id="countryName" name="countryName" value={formData.countryName} onChange={handleChange} />
+        </div>
+        <div className="form-group">
+          <label htmlFor="population">Population: </label>
+          <input type="text" id="population" name="population" value={formData.population} onChange={handleChange} />
+        </div>
+        <div className="form-group">
+          <label htmlFor="capital">Capital: </label>
+          <input type="text" id="capital" name="capital" value={formData.capital} onChange={handleChange} />
+        </div>
+        <div className="form-group">
+          <label htmlFor="currency">Currency: </label>
+          <input type="text" id="currency" name="currency" value={formData.currency} onChange={handleChange} />
+        </div>
+        <button type="submit">Submit</button>
+      </form>
+      <button type="button" onClick={handleFilter}>Filter</button>
+      <div>
+        <h2>Filtered Countries:</h2>
+        <pre>{JSON.stringify(filteredCountries, null, 2)}</pre>
+      </div>
+      <div>
+        <h2>Fetched Countries:</h2>
+        <pre>{JSON.stringify(countries, null, 2)}</pre>
+      </div>
+    </div>
+  );
+};
+
+export default SearchForm;
+You can copy-paste this code into your respective JavaScript files to see it in action.
+
+
+
+
+User
+useCountryForm update that hook, we alsways fetch all countries and then use for filtering:
+1) Create a function that accepts a string as a parameter and can filter by country `name/common`. 
+2) The filter should search for countries names that contains string from attributes (e.g. providing `st` as attribute I could find `Estonia`, providing `Sp` I could find `Spain`)
+3) Search should be case insensitive (e.g., providing `sT` should find `Estonia`) 
+ChatGPT
+Certainly! If you always fetch all countries and then apply the filter locally, you can modify the useCountryForm hook to have a function that does just that. Here's the updated code:
+
+Updated useCountryForm.js
+javascript
+Copy code
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+
+export const useCountryForm = () => {
+  const [formData, setFormData] = useState({
+    countryName: '',
+    population: '',
+    capital: '',
+    currency: ''
+  });
+  const [countries, setCountries] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const url = 'https://restcountries.com/v3/all';
+        const response = await axios.get(url);
+        setCountries(response.data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+  };
+
+  const filterCountriesByName = (searchStr) => {
+    const lowerCaseSearchStr = searchStr.toLowerCase();
+    const filteredCountries = countries.filter(country => {
+      const countryName = country.name.common.toLowerCase();
+      return countryName.includes(lowerCaseSearchStr);
+    });
+    return filteredCountries;
+  };
+
+  return {
+    formData,
+    handleChange,
+    handleSubmit,
+    countries,
+    filterCountriesByName
+  };
+};
+Here, I have removed the dynamic fetching of countries from handleSubmit. Instead, all countries are fetched once when the component mounts (using useEffect). After that, you can filter them locally using the filterCountriesByName function, which operates exactly as you specified.
+
+Remember to add useEffect to the import from 'react' if you haven't already.
+
+
+
+
+User
+what i need to update in App component to apply this code 
+ChatGPT
+To adapt your SearchForm component to use the updated useCountryForm hook, you would need to add state to keep track of the filtered countries. You would also add a button to execute the filtering. Below is the updated SearchForm component:
+
+javascript
+Copy code
+import React, { useState } from 'react';
+import { useCountryForm } from './useCountryForm';  // Update the import path if necessary
+import './SearchForm.css';
+
+const SearchForm = () => {
+  const { formData, handleChange, handleSubmit, countries, filterCountriesByName } = useCountryForm();
+  const [filteredCountries, setFilteredCountries] = useState([]);
+
+  const handleFilter = () => {
+    const filtered = filterCountriesByName(formData.countryName);
+    setFilteredCountries(filtered);
+  };
+
+  return (
+    <div className="app-container">
+      <h1>Country Information Form</h1>
+      <form onSubmit={handleSubmit}>
+        {/* ... same form inputs as before */}
+        <button type="submit">Submit</button>
+      </form>
+
+      <button onClick={handleFilter} type="button">Filter Countries</button>
+      
+      <div>
+        <h2>Fetched Countries:</h2>
+        <pre>{JSON.stringify(countries, null, 2)}</pre>
+      </div>
+
+      <div>
+        <h2>Filtered Countries:</h2>
+        <pre>{JSON.stringify(filteredCountries, null, 2)}</pre>
+      </div>
+    </div>
+  );
+};
+
+export default SearchForm;
+Here, filteredCountries is a new piece of state that will hold the list of countries that match the filter. When you click the "Filter Countries" button, the handleFilter function will be executed, setting the filteredCountries state to the list of countries that match the filter based on name.common.
+
+Make sure to also import useState from 'react', if you haven't done so yet.
+
+Add this updated SearchForm component to your main App component like so:
+
+javascript
+Copy code
+import React from 'react';
+import SearchForm from './SearchForm';  // Update the import path if necessary
+
+const App = () => {
+  return (
+    <div>
+      <SearchForm />
+    </div>
+  );
+};
+
+export default App;
+The App component imports SearchForm and renders it. Adjust the import paths based on your project's folder structure.
+
+
+
+
+User
+show me full code of SearchForm
+ChatGPT
+Certainly! Below is the full code of the SearchForm component that integrates with the updated useCountryForm hook:
+
+javascript
+Copy code
+import React, { useState } from 'react';
+import { useCountryForm } from './useCountryForm';  // Make sure to adjust the path to your useCountryForm.js file
+import './SearchForm.css';  // Adjust the path to your CSS file, if needed
+
+const SearchForm = () => {
+  const { formData, handleChange, handleSubmit, countries, filterCountriesByName } = useCountryForm();
+  const [filteredCountries, setFilteredCountries] = useState([]);
+
+  const handleFilter = () => {
+    const filtered = filterCountriesByName(formData.countryName);
+    setFilteredCountries(filtered);
+  };
+
+  return (
+    <div className="app-container">
+      <h1>Country Information Form</h1>
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label htmlFor="countryName">Country Name: </label>
+          <input type="text" id="countryName" name="countryName" value={formData.countryName} onChange={handleChange} className="form-group__input" />
+        </div>
+        <div className="form-group">
+          <label htmlFor="population">Population: </label>
+          <input type="text" id="population" name="population" value={formData.population} onChange={handleChange} className="form-group__input" />
+        </div>
+        <div className="form-group">
+          <label htmlFor="capital">Capital: </label>
+          <input type="text" id="capital" name="capital" value={formData.capital} onChange={handleChange} className="form-group__input" />
+        </div>
+        <div className="form-group">
+          <label htmlFor="currency">Currency: </label>
+          <input type="text" id="currency" name="currency" value={formData.currency} onChange={handleChange} className="form-group__input" />
+        </div>
+        <button type="submit" className="form-group__button">Submit</button>
+      </form>
+
+      <button onClick={handleFilter} type="button" className="form-group__button">Filter Countries</button>
+
+      <div>
+        <h2>Fetched Countries:</h2>
+        <pre>{JSON.stringify(countries, null, 2)}</pre>
+      </div>
+
+      <div>
+        <h2>Filtered Countries:</h2>
+        <pre>{JSON.stringify(filteredCountries, null, 2)}</pre>
+      </div>
+    </div>
+  );
+};
+
+export default SearchForm;
+The main additions are the filteredCountries state and the handleFilter function that sets this state by calling filterCountriesByName from useCountryForm. There's also a new button to trigger the filtering. This button calls handleFilter when clicked.
+
+
+
+
+User
+filtering should work with submit button and fetching all countries we should call when open the page 
+ChatGPT
+Ah, I understand. You want to initiate the fetch for all countries when the page first loads and then use the "Submit" button to filter the fetched countries. To accomplish this, you can slightly modify the handleSubmit function in the useCountryForm hook to apply the filtering.
+
+Here's how you could update the SearchForm component:
+
+javascript
+Copy code
+import React, { useState } from 'react';
+import { useCountryForm } from './useCountryForm';
+import './SearchForm.css';
+
+const SearchForm = () => {
+  const { formData, handleChange, handleSubmit: fetchCountries, countries, filterCountriesByName } = useCountryForm();
+  const [filteredCountries, setFilteredCountries] = useState([]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const filtered = filterCountriesByName(formData.countryName);
+    setFilteredCountries(filtered);
+  };
+
+  return (
+    <div className="app-container">
+      <h1>Country Information Form</h1>
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label htmlFor="countryName">Country Name: </label>
+          <input type="text" id="countryName" name="countryName" value={formData.countryName} onChange={handleChange} className="form-group__input" />
+        </div>
+        <button type="submit" className="form-group__button">Submit</button>
+      </form>
+
+      <div>
+        <h2>Fetched Countries:</h2>
+        <pre>{JSON.stringify(countries, null, 2)}</pre>
+      </div>
+
+      <div>
+        <h2>Filtered Countries:</h2>
+        <pre>{JSON.stringify(filteredCountries, null, 2)}</pre>
+      </div>
+    </div>
+  );
+};
+
+export default SearchForm;
+In this update, I've replaced the old handleSubmit with fetchCountries in the destructuring of the useCountryForm hook's return value. This is because you don't need the original handleSubmit function for submitting the form anymore; you're going to use the form submit event to trigger filtering.
+
+The new handleSubmit function filters the countries based on the input and sets filteredCountries accordingly. This function is triggered when you press the "Submit" button.
+
+This assumes that the useCountryForm hook is already fetching all countries when the component first mounts, as was the case in the code you initially provided.
+
+
+
+
+User
+why we dont use fetchCountries 
+ChatGPT
+You're correct, and I apologize for the confusion. If you want to fetch all countries when the page first loads, you should use fetchCountries in a useEffect within the SearchForm component or within the useCountryForm custom hook. This way, the fetch operation would be initiated as soon as the component mounts.
+
+Here's how you could do it:
+
+In useCountryForm custom hook
+Update your useCountryForm custom hook to include a useEffect to fetch all countries when the hook is first used:
+
+javascript
+Copy code
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+
+export const useCountryForm = () => {
+  // ... (existing state and functions)
+
+  useEffect(() => {
+    fetchData();  // Fetch all countries when the hook is first used
+  }, []);
+
+  // ... (rest of the code)
+};
+In SearchForm component
+Use the handleSubmit function to apply the filtering based on the country name:
+
+javascript
+Copy code
+import React, { useState } from 'react';
+import { useCountryForm } from './useCountryForm';
+import './SearchForm.css';
+
+const SearchForm = () => {
+  const { formData, handleChange, countries, filterCountriesByName } = useCountryForm();
+  const [filteredCountries, setFilteredCountries] = useState([]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const filtered = filterCountriesByName(formData.countryName);
+    setFilteredCountries(filtered);
+  };
+
+  return (
+    <div className="app-container">
+      <h1>Country Information Form</h1>
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label htmlFor="countryName">Country Name: </label>
+          <input type="text" id="countryName" name="countryName" value={formData.countryName} onChange={handleChange} className="form-group__input" />
+        </div>
+        <button type="submit" className="form-group__button">Submit</button>
+      </form>
+
+      <div>
+        <h2>Fetched Countries:</h2>
+        <pre>{JSON.stringify(countries, null, 2)}</pre>
+      </div>
+
+      <div>
+        <h2>Filtered Countries:</h2>
+        <pre>{JSON.stringify(filteredCountries, null, 2)}</pre>
+      </div>
+    </div>
+  );
+};
+
+export default SearchForm;
+With these updates, the page will fetch all countries when it first loads, thanks to the useEffect in useCountryForm. Then, the "Submit" button will filter the fetched countries based on the country name entered in the form.
+
+
+
+
+User
+with initial rendering show in Filtered Countries all countries 
+ChatGPT
+If you want to show all fetched countries in the "Filtered Countries" section upon initial rendering, you can simply initialize filteredCountries with the countries state. You can use a useEffect to set filteredCountries whenever countries changes.
+
+Here's how to do it in the SearchForm component:
+
+javascript
+Copy code
+import React, { useState, useEffect } from 'react';
+import { useCountryForm } from './useCountryForm';
+import './SearchForm.css';
+
+const SearchForm = () => {
+  const { formData, handleChange, countries, filterCountriesByName } = useCountryForm();
+  const [filteredCountries, setFilteredCountries] = useState([]);
+
+  // This useEffect will set filteredCountries to be the same as countries
+  // whenever countries changes, including on initial render
+  useEffect(() => {
+    setFilteredCountries(countries);
+  }, [countries]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const filtered = filterCountriesByName(formData.countryName);
+    setFilteredCountries(filtered);
+  };
+
+  return (
+    <div className="app-container">
+      <h1>Country Information Form</h1>
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label htmlFor="countryName">Country Name: </label>
+          <input type="text" id="countryName" name="countryName" value={formData.countryName} onChange={handleChange} className="form-group__input" />
+        </div>
+        <button type="submit" className="form-group__button">Submit</button>
+      </form>
+
+      <div>
+        <h2>Fetched Countries:</h2>
+        <pre>{JSON.stringify(countries, null, 2)}</pre>
+      </div>
+
+      <div>
+        <h2>Filtered Countries:</h2>
+        <pre>{JSON.stringify(filteredCountries, null, 2)}</pre>
+      </div>
+    </div>
+  );
+};
+
+export default SearchForm;
+This setup uses useEffect to watch for changes in countries. Whenever countries changes, filteredCountries will be updated to match, which will include all countries when the page first loads.
+
+
+
+
+User
+move this use Effect to useCountryForm
+ChatGPT
+Certainly, you can move that useEffect into the useCountryForm custom hook. You can manage filteredCountries as another state variable within the useCountryForm hook and expose it to the SearchForm component.
+
+Here's an updated version of useCountryForm:
+
+javascript
+Copy code
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+
+export const useCountryForm = () => {
+  const [formData, setFormData] = useState({
+    countryName: '',
+    population: '',
+    capital: '',
+    currency: ''
+  });
+  const [countries, setCountries] = useState([]);
+  const [filteredCountries, setFilteredCountries] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get('https://restcountries.com/v3/all');
+        setCountries(response.data);
+        setFilteredCountries(response.data);  // Set filteredCountries to all countries initially
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    setFilteredCountries(countries);
+  }, [countries]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+  };
+
+  const filterCountriesByName = (name) => {
+    const filtered = countries.filter(country => {
+      const commonName = country.name?.common?.toLowerCase() || '';
+      return commonName.includes(name.toLowerCase());
+    });
+    return filtered;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const filtered = filterCountriesByName(formData.countryName);
+    setFilteredCountries(filtered);
+  };
+
+  return {
+    formData,
+    handleChange,
+    handleSubmit,
+    countries,
+    filteredCountries  // Expose filteredCountries
+  };
+};
+In the SearchForm component, you don't need to manage filteredCountries anymore, as it's now managed within the useCountryForm hook:
+
+javascript
+Copy code
+import React from 'react';
+import { useCountryForm } from './useCountryForm';
+import './SearchForm.css';
+
+const SearchForm = () => {
+  const { formData, handleChange, handleSubmit, countries, filteredCountries } = useCountryForm();
+
+  return (
+    <div className="app-container">
+      <h1>Country Information Form</h1>
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label htmlFor="countryName">Country Name: </label>
+          <input type="text" id="countryName" name="countryName" value={formData.countryName} onChange={handleChange} className="form-group__input" />
+        </div>
+        <button type="submit" className="form-group__button">Submit</button>
+      </form>
+
+      <div>
+        <h2>Fetched Countries:</h2>
+        <pre>{JSON.stringify(countries, null, 2)}</pre>
+      </div>
+
+      <div>
+        <h2>Filtered Countries:</h2>
+        <pre>{JSON.stringify(filteredCountries, null, 2)}</pre>
+      </div>
+    </div>
+  );
+};
+
+export default SearchForm;
+With this update, the useCountryForm hook now manages filteredCountries and updates it whenever countries changes. This will make sure that filteredCountries contains all countries upon the initial render. The SearchForm component then simply uses filteredCountries from the useCountryForm hook.
+
+
+
+
+User
+could you update the filter functionality 
+when i pass "est" to search input I expect to see Estonia higher in the list than Palestine 
+ChatGPT
+To adjust the ranking of countries in your filtered list based on how closely they match the input string, you can introduce a scoring mechanism in your filterCountriesByName function. You can then sort the filtered countries based on their scores.
+
+For example, you could count the index of the first occurrence of the search string in each country name, and then sort by that index. This would make countries with a lower index appear earlier in the list.
+
+Here's an updated filterCountriesByName function that takes this into account:
+
+javascript
+Copy code
+const filterCountriesByName = (name) => {
+  const searchString = name.toLowerCase();
+  const filtered = countries
+    .filter(country => {
+      const commonName = country.name?.common?.toLowerCase() || '';
+      return commonName.includes(searchString);
+    })
+    .map(country => {
+      const commonName = country.name?.common?.toLowerCase() || '';
+      return {
+        ...country,
+        matchIndex: commonName.indexOf(searchString),
+      };
+    })
+    .sort((a, b) => a.matchIndex - b.matchIndex);
+
+  return filtered.map(country => {
+    const { matchIndex, ...rest } = country;  // Remove the matchIndex before returning
+    return rest;
+  });
+};
+With this change, countries where the search string appears earlier in the name will be sorted to the top of the filtered list.
+
+You can include this updated function in your useCountryForm custom hook. The rest of your code would remain mostly unchanged.

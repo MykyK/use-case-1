@@ -1,0 +1,206 @@
+
+Analysts following code: 
+1: 
+import React from 'react';
+import { useCountryForm } from './useSearchForm';
+import './SearchForm.css';
+
+const SearchForm = () => {
+  const { formData, handleChange, handleSubmit, filteredCountries } = useCountryForm();
+
+  return (
+    <div className="app-container">
+      <h1>Country Information Form</h1>
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label htmlFor="countryName">Country Name: </label>
+          <input type="text" id="countryName" name="countryName" value={formData.countryName} onChange={handleChange} className="form-group__input" />
+        </div>
+        <div className="form-group">
+          <label htmlFor="population">Population (in millions): </label>
+          <input type="text" id="population" name="population" value={formData.population} onChange={handleChange} className="form-group__input" />
+        </div>
+        <button type="submit" className="form-group__button">Submit</button>
+      </form>
+
+      <div>
+        <h2>Filtered Countries:</h2>
+        <pre>{JSON.stringify(filteredCountries, null, 2)}</pre>
+      </div>
+    </div>
+  );
+};
+
+export default SearchForm;
+2: 
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { filterCountriesByName, filterCountriesByPopulation } from './helpers';
+
+export const useCountryForm = () => {
+  const [formData, setFormData] = useState({
+    countryName: '',
+    population: '',
+    capital: '',
+    currency: ''
+  });
+  const [countries, setCountries] = useState([]);
+  const [filteredCountries, setFilteredCountries] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get('https://restcountries.com/v3/all');
+        setCountries(response.data);
+        setFilteredCountries(response.data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    setFilteredCountries(countries);
+  }, [countries]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+  };
+
+
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    let filtered = [...countries];
+    if (formData.countryName) {
+      filtered = filterCountriesByName(formData.countryName, filtered);
+    }
+    if (formData.population) {
+      filtered = filterCountriesByPopulation(formData.population, filtered);
+    }
+  
+    setFilteredCountries(filtered);
+  };
+
+  return {
+    formData,
+    handleChange,
+    handleSubmit,
+    countries,
+    filteredCountries
+  };
+};
+3:
+export const filterCountriesByName = (name, countries) => {
+  const searchString = name.toLowerCase();
+  const filtered = countries
+    .filter(country => {
+      const commonName = country.name?.common?.toLowerCase() || '';
+      return commonName.includes(searchString);
+    })
+    .map(country => {
+      const commonName = country.name?.common?.toLowerCase() || '';
+      return {
+        ...country,
+        matchIndex: commonName.indexOf(searchString),
+      };
+    })
+    .sort((a, b) => a.matchIndex - b.matchIndex);
+
+  return filtered.map(country => {
+    const { matchIndex, ...rest } = country;
+    return rest;
+  });
+};
+
+export const filterCountriesByPopulation = (limit, countries) => {
+  const populationLimit = parseInt(limit, 10) * 1000000;
+  return countries.filter(country => country.population < populationLimit);
+};
+
+and help me with following: 
+1) Create a function that accepts a string as an attribute and can sort data by ` name/common `. 
+2) The sort should accept string ` ascend or descend ` and sort countries name by provided attribute (e.g. providing attribute ascend all countries should be sorted from A to Z)
+
+ChatGPT
+Certainly! To achieve the functionalities you've requested, you can add a function to sort countries by their name/common field, either in ascending or descending order.
+
+Here is how you can do it:
+
+1) Create a function to sort countries by name/common
+Add this function to your helpers.js file (or wherever you've placed your filterCountriesByName and filterCountriesByPopulation functions).
+
+javascript
+Copy code
+export const sortCountriesByName = (order, countries) => {
+  return countries.sort((a, b) => {
+    const nameA = a.name?.common || "";
+    const nameB = b.name?.common || "";
+
+    if (order === "ascend") {
+      return nameA.localeCompare(nameB);
+    } else if (order === "descend") {
+      return nameB.localeCompare(nameA);
+    } else {
+      // If the order is neither "ascend" nor "descend", return the original array.
+      return 0;
+    }
+  });
+};
+2) Use the sorting function in your custom hook useCountryForm
+Modify your handleSubmit function within the useCountryForm hook to incorporate the sorting functionality.
+
+Here's a modified version of your handleSubmit function:
+
+javascript
+Copy code
+const handleSubmit = (e) => {
+  e.preventDefault();
+  let filtered = [...countries];
+
+  // Filter by name and population
+  if (formData.countryName) {
+    filtered = filterCountriesByName(formData.countryName, filtered);
+  }
+  if (formData.population) {
+    filtered = filterCountriesByPopulation(formData.population, filtered);
+  }
+
+  // Sort countries
+  // Assuming formData.sortOrder contains either "ascend" or "descend"
+  filtered = sortCountriesByName(formData.sortOrder, filtered);
+
+  setFilteredCountries(filtered);
+};
+In the code snippet above, formData.sortOrder is assumed to contain either "ascend" or "descend". You would need to add a new form field to your SearchForm component to allow the user to select the sort order.
+
+Here's how you can do it:
+
+javascript
+Copy code
+// Add this inside your form in the `SearchForm` component
+<div className="form-group">
+  <label htmlFor="sortOrder">Sort Order: </label>
+  <select id="sortOrder" name="sortOrder" value={formData.sortOrder} onChange={handleChange} className="form-group__input">
+    <option value="ascend">Ascending</option>
+    <option value="descend">Descending</option>
+  </select>
+</div>
+And don't forget to initialize sortOrder inside the useState for formData in useCountryForm:
+
+javascript
+Copy code
+const [formData, setFormData] = useState({
+  countryName: '',
+  population: '',
+  sortOrder: 'ascend', // Add this line
+  capital: '',
+  currency: ''
+});
+This should fully integrate the sorting functionality into your existing code.
