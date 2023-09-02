@@ -14,6 +14,13 @@ const SearchForm = () => {
           <input type="text" id="countryName" name="countryName" value={formData.countryName} onChange={handleChange} className="form-group__input" />
         </div>
         <div className="form-group">
+          <label htmlFor="sortOrder">Sort Order: </label>
+          <select id="sortOrder" name="sortOrder" value={formData.sortOrder} onChange={handleChange} className="form-group__input">
+            <option value="ascend">Ascending</option>
+            <option value="descend">Descending</option>
+          </select>
+        </div>
+        <div className="form-group">
           <label htmlFor="population">Population (in millions): </label>
           <input type="text" id="population" name="population" value={formData.population} onChange={handleChange} className="form-group__input" />
         </div>

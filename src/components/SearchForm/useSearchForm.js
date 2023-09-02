@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { filterCountriesByName, filterCountriesByPopulation } from './helpers';
+import { filterCountriesByName, filterCountriesByPopulation, sortCountriesByName } from './helpers';
 
 export const useCountryForm = () => {
   const [formData, setFormData] = useState({
     countryName: '',
     population: '',
+    sortOrder: 'ascend',
     capital: '',
     currency: ''
   });
@@ -43,12 +44,15 @@ export const useCountryForm = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     let filtered = [...countries];
+  
     if (formData.countryName) {
       filtered = filterCountriesByName(formData.countryName, filtered);
     }
     if (formData.population) {
       filtered = filterCountriesByPopulation(formData.population, filtered);
     }
+
+    filtered = sortCountriesByName(formData.sortOrder, filtered);
   
     setFilteredCountries(filtered);
   };
