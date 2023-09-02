@@ -19,3 +19,8 @@ export const filterCountriesByName = (name, countries) => {
     return rest;
   });
 };
+
+export const filterCountriesByPopulation = (limit, countries) => {
+  const populationLimit = parseInt(limit, 10) * 1000000;
+  return countries.filter(country => country.population < populationLimit);
+};

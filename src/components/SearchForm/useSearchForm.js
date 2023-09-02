@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { filterCountriesByName } from './helpers';
+import { filterCountriesByName, filterCountriesByPopulation } from './helpers';
 
 export const useCountryForm = () => {
   const [formData, setFormData] = useState({
@@ -42,7 +42,14 @@ export const useCountryForm = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const filtered = filterCountriesByName(formData.countryName, countries);
+    let filtered = [...countries];
+    if (formData.countryName) {
+      filtered = filterCountriesByName(formData.countryName, filtered);
+    }
+    if (formData.population) {
+      filtered = filterCountriesByPopulation(formData.population, filtered);
+    }
+  
     setFilteredCountries(filtered);
   };
 
@@ -51,6 +58,6 @@ export const useCountryForm = () => {
     handleChange,
     handleSubmit,
     countries,
-    filteredCountries  // Expose filteredCountries
+    filteredCountries
   };
 };

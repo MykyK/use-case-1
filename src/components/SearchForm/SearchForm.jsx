@@ -13,6 +13,10 @@ const SearchForm = () => {
           <label htmlFor="countryName">Country Name: </label>
           <input type="text" id="countryName" name="countryName" value={formData.countryName} onChange={handleChange} className="form-group__input" />
         </div>
+        <div className="form-group">
+          <label htmlFor="population">Population (in millions): </label>
+          <input type="text" id="population" name="population" value={formData.population} onChange={handleChange} className="form-group__input" />
+        </div>
         <button type="submit" className="form-group__button">Submit</button>
       </form>
 
