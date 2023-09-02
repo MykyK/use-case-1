@@ -14,6 +14,15 @@ export const useCountryForm = () => {
   const [filteredCountries, setFilteredCountries] = useState([]);
   const [limit, setLimit] = useState(null);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const [totalPages, setTotalPages] = useState(0);
+
+
+  useEffect(() => {
+    setTotalPages(Math.ceil(filteredCountries.length / itemsPerPage));
+  }, [filteredCountries]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -47,6 +56,9 @@ export const useCountryForm = () => {
   };
 
 
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -64,12 +76,21 @@ export const useCountryForm = () => {
     setFilteredCountries(filtered);
   };
 
+  const sliceStart = (currentPage - 1) * itemsPerPage;
+  const sliceEnd = sliceStart + itemsPerPage;
+
+  const currentCountries = filteredCountries.slice(sliceStart, sliceEnd);
+
   return {
     formData,
     handleChange,
     handleSubmit,
     countries,
-    filteredCountries,
-    setLimit
+    setLimit,
+    currentPage,
+    handlePageChange,
+    totalPages,
+    currentCountries,
+    itemsPerPage
   };
 };
