@@ -35,12 +35,6 @@
   color: white;
 }
 
-.pagination {
-  margin-top: 20px;
-  text-align: center;
-  display: inline-block;
-}
-
 .pagination button, .pagination span {
   margin: 0 5px;
   padding: 5px 10px;

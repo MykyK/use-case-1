@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { filterCountriesByName, filterCountriesByPopulation, sortCountriesByName } from './helpers';
 
-export const useCountryForm = () => {
+export const useSearchForm = () => {
   const [formData, setFormData] = useState({
     countryName: '',
     population: '',

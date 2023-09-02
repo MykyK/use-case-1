@@ -1,5 +1,5 @@
 import React from 'react';
-import { useCountryForm } from './useSearchForm';
+import { useSearchForm } from './useSearchForm';
 import './SearchForm.css';
 import CountryTable from '../CountryTable/CountryTable';
 
@@ -12,12 +12,12 @@ const SearchForm = () => {
     handlePageChange,
     totalPages,
     currentCountries
-  } = useCountryForm();
+  } = useSearchForm();
 
   return (
     <div className="app-container">
       <h1>Country Information Form</h1>
-      <form onSubmit={handleSubmit}>
+      <form data-testid="form" onSubmit={handleSubmit}>
         <div className="form-group">
           <label className='form-group__label'  htmlFor="countryName">Country Name: </label>
           <input type="text" id="countryName" name="countryName" value={formData.countryName} onChange={handleChange} className="form-group__input" />

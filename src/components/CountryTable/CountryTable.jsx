@@ -27,7 +27,7 @@ const CountryTable = ({ filteredCountries, currentPage, handlePageChange, totalP
         </thead>
         <tbody>
           {filteredCountries.map((country, index) => (
-            <tr key={index}>
+            <tr key={index+country}>
               <td>{country.name?.common}</td>
               <td>{country.population}</td>
               <td>{country.capital}</td>
